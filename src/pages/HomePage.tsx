@@ -68,29 +68,11 @@ export default function HomePage() {
     });
   }, [eventos, filtro]);
 
-  const totalRecebe = eventos.reduce((s, e) => s + Math.max(0, e.saldoUsuario), 0);
-  const totalDeve = eventos.reduce((s, e) => s + Math.min(0, e.saldoUsuario), 0);
-
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <p className="text-ink-500 text-sm">Olá,</p>
         <h1 className="font-display text-3xl font-bold">{perfil?.nome_completo ?? 'bem-vindo'} 👋</h1>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <div className="card p-4">
-          <p className="text-xs uppercase tracking-wide text-ink-500">Você recebe</p>
-          <p className="font-display text-2xl font-bold text-lime-600">{formatBRL(totalRecebe)}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs uppercase tracking-wide text-ink-500">Você deve</p>
-          <p className="font-display text-2xl font-bold text-danger-500">{formatBRL(Math.abs(totalDeve))}</p>
-        </div>
-        <div className="card p-4 hidden md:block">
-          <p className="text-xs uppercase tracking-wide text-ink-500">Eventos</p>
-          <p className="font-display text-2xl font-bold text-brand-600">{eventos.length}</p>
-        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

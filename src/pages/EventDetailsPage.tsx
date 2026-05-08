@@ -32,7 +32,7 @@ export default function EventDetailsPage() {
   const [participantes, setParticipantes] = useState<ParticipanteEventoComPerfilDto[]>([]);
   const [despesas, setDespesas] = useState<DespesaDto[]>([]);
   const [resumo, setResumo] = useState<ResumoFinanceiroResult[]>([]);
-  const [tab, setTab] = useState<'despesas' | 'participantes' | 'resumo'>('despesas');
+  const [tab, setTab] = useState<'despesas' | 'participantes'>('despesas');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -117,18 +117,18 @@ export default function EventDetailsPage() {
           <h1 className="font-display text-3xl font-bold">{evento.nome}</h1>
           {evento.descricao && <p className="text-brand-100 mt-2">{evento.descricao}</p>}
         </div>
-        <div className="mt-6 grid grid-cols-3 gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-brand-100">Total do rolê</p>
-            <p className="font-display text-2xl font-bold">{formatBRL(totalEvento)}</p>
+        <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-xs uppercase tracking-wide text-brand-100">Total do rolê</p>
+            <p className="font-display text-base sm:text-2xl font-bold truncate">{formatBRL(totalEvento)}</p>
           </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-brand-100">Você pagou</p>
-            <p className="font-display text-2xl font-bold">{formatBRL(meuResumo?.total_pago ?? 0)}</p>
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-xs uppercase tracking-wide text-brand-100">Você pagou</p>
+            <p className="font-display text-base sm:text-2xl font-bold truncate">{formatBRL(meuResumo?.total_pago ?? 0)}</p>
           </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-brand-100">Seu saldo</p>
-            <p className={`font-display text-2xl font-bold ${
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-xs uppercase tracking-wide text-brand-100">Seu saldo</p>
+            <p className={`font-display text-base sm:text-2xl font-bold truncate ${
               (meuResumo?.saldo ?? 0) > 0 ? 'text-lime-400' : (meuResumo?.saldo ?? 0) < 0 ? 'text-danger-100' : ''
             }`}>
               {formatBRL(meuResumo?.saldo ?? 0)}
@@ -166,13 +166,12 @@ export default function EventDetailsPage() {
           [
             { k: 'despesas', l: 'Despesas', i: <Receipt className="w-4 h-4" /> },
             { k: 'participantes', l: `Participantes (${participantes.length})`, i: <Users className="w-4 h-4" /> },
-            { k: 'resumo', l: 'Resumo', i: <HandCoins className="w-4 h-4" /> },
           ] as const
         ).map((t) => (
           <button
             key={t.k}
             onClick={() => setTab(t.k)}
-            className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 -mb-px transition ${
+            className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 -mb-px transition shrink-0 whitespace-nowrap ${
               tab === t.k ? 'border-brand-500 text-brand-600' : 'border-transparent text-ink-500 hover:text-ink-800'
             }`}
           >
@@ -187,7 +186,6 @@ export default function EventDetailsPage() {
       {tab === 'participantes' && (
         <ParticipantesTab participantes={participantes} eventoId={evento.id} />
       )}
-      {tab === 'resumo' && <ResumoTab resumo={resumo} />}
     </div>
   );
 }
@@ -273,36 +271,3 @@ function ParticipantesTab({
   );
 }
 
-function ResumoTab({ resumo }: { resumo: ResumoFinanceiroResult[] }) {
-  if (resumo.length === 0) {
-    return (
-      <div className="card p-8 text-center text-ink-600">
-        Ainda não tem nada pra resumir. Lança uma despesa primeiro 😉
-      </div>
-    );
-  }
-  return (
-    <div className="grid gap-3">
-      {resumo.map((r) => {
-        const positivo = r.saldo > 0.005;
-        const negativo = r.saldo < -0.005;
-        return (
-          <div key={r.usuario_id} className="card p-4 flex items-center gap-4">
-            <Avatar nome={r.nome_completo} url={r.avatar_url} size={44} />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-ink-900 line-clamp-1">{r.nome_completo}</p>
-              <p className="text-sm text-ink-500">
-                Pagou {formatBRL(r.total_pago)} · Deve {formatBRL(r.total_deve)}
-              </p>
-            </div>
-            <div className="text-right">
-              {positivo && <span className="font-display font-bold text-lime-600">+{formatBRL(r.saldo)}</span>}
-              {negativo && <span className="font-display font-bold text-danger-500">{formatBRL(r.saldo)}</span>}
-              {!positivo && !negativo && <span className="font-display font-bold text-ink-500">Quitado</span>}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}

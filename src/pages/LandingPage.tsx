@@ -35,17 +35,21 @@ export default function LandingPage() {
     <div className="min-h-screen bg-ink-50">
       {/* Top bar */}
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-ink-100">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <Logo size={36} withWordmark />
+        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-2">
+          <Logo size={32} className="sm:hidden" />
+          <Logo size={36} withWordmark className="hidden sm:inline-flex" />
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-ink-700">
             <a href="#dor" className="hover:text-brand-600">Por que existe</a>
             <a href="#como-funciona" className="hover:text-brand-600">Como funciona</a>
             <a href="#provas" className="hover:text-brand-600">Quem já usa</a>
             <a href="#perguntas" className="hover:text-brand-600">FAQ</a>
           </nav>
-          <div className="flex items-center gap-2">
-            <Link to="/entrar" className="btn-ghost">Entrar</Link>
-            <Link to="/cadastro" className="btn-primary">Criar conta grátis</Link>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Link to="/entrar" className="btn-ghost px-3 py-2 sm:px-5 sm:py-3 whitespace-nowrap">Entrar</Link>
+            <Link to="/cadastro" className="btn-primary px-3 py-2 sm:px-5 sm:py-3 whitespace-nowrap">
+              <span className="sm:hidden">Cadastrar</span>
+              <span className="hidden sm:inline">Criar conta grátis</span>
+            </Link>
           </div>
         </div>
       </header>
