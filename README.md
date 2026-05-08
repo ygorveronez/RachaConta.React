@@ -119,10 +119,3 @@ RPCs consumidas (idênticas ao app Android):
 - **Body font**: Inter.
 
 A paleta inteira está em [`tailwind.config.js`](tailwind.config.js) e é uma cópia 1:1 da paleta Material 3 do app.
-
-## Usuários de teste
-
-Os mesmos do Android (documentados em [`../RachaConta/README.md`](../RachaConta/README.md)):
-
-- `ygor.veronez.93@hotmail.com` / `321321`
-- `ygor@iu360.com.br` / `321321`
