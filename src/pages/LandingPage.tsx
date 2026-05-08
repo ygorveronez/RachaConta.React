@@ -44,7 +44,7 @@ export default function LandingPage() {
             <a href="#perguntas" className="hover:text-brand-600">FAQ</a>
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/entrar" className="btn-ghost hidden sm:inline-flex">Entrar</Link>
+            <Link to="/entrar" className="btn-ghost">Entrar</Link>
             <Link to="/cadastro" className="btn-primary">Criar conta grátis</Link>
           </div>
         </div>
