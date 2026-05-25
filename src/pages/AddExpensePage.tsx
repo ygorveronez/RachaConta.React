@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Lock, Trash2 } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
 import { listarParticipantes } from '@/api/eventos';
 import {
   atualizarDespesa,
@@ -22,6 +23,7 @@ import { Avatar } from '@/components/Avatar';
 export default function AddExpensePage() {
   const { eventId, expenseId } = useParams<{ eventId: string; expenseId?: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isEdit = Boolean(expenseId);
 
   const [participantes, setParticipantes] = useState<ParticipanteEventoComPerfilDto[]>([]);
@@ -37,6 +39,13 @@ export default function AddExpensePage() {
   const [loading, setLoading] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Guarda criado_por e pago_por originais da despesa (em edição) pra checar permissão.
+  // Regra do RPC atualizar_despesa_com_divisoes: só criador ou pagador original podem editar.
+  const [donoOriginal, setDonoOriginal] = useState<{ criado_por: string; pago_por: string } | null>(null);
+  const podeEditar =
+    !isEdit || !donoOriginal || !user
+      ? true
+      : user.id === donoOriginal.criado_por || user.id === donoOriginal.pago_por;
 
   useEffect(() => {
     if (!eventId) return;
@@ -70,8 +79,9 @@ export default function AddExpensePage() {
   }, [eventId, expenseId]);
 
   function fillFromDespesa(d: DespesaDto, divisoes: DivisaoDespesaDto[]) {
+    setDonoOriginal({ criado_por: d.criado_por, pago_por: d.pago_por });
     setDescricao(d.descricao);
-    setValor(String(d.valor_total).replace('.', ','));
+    setValor(formatCurrencyFromNumber(Number(d.valor_total)));
     // Despesa pode ter data null — input fica vazio nesse caso.
     setData(formatDateTimeLocalInput(d.data_despesa));
     setPagoPor(d.pago_por);
@@ -81,7 +91,7 @@ export default function AddExpensePage() {
     setSelecionados(ids);
     const map: Record<string, string> = {};
     divisoes.forEach((dv) => {
-      map[dv.participante_id] = String(dv.valor).replace('.', ',');
+      map[dv.participante_id] = formatCurrencyFromNumber(Number(dv.valor));
     });
     setValoresManuais(map);
   }
@@ -157,7 +167,7 @@ export default function AddExpensePage() {
       }
       navigate(`/app/eventos/${eventId}`, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar despesa');
+      setError(extractErrorMessage(err, 'Erro ao salvar despesa'));
     } finally {
       setLoading(false);
     }
@@ -171,7 +181,7 @@ export default function AddExpensePage() {
       await deletarDespesa(expenseId);
       navigate(`/app/eventos/${eventId}`, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao apagar');
+      setError(extractErrorMessage(err, 'Erro ao apagar'));
     } finally {
       setLoading(false);
     }
@@ -196,12 +206,25 @@ export default function AddExpensePage() {
           <h1 className="font-display text-3xl font-bold">{isEdit ? 'Editar despesa' : 'Nova despesa'}</h1>
           <p className="text-ink-600">Quem pagou? Quanto? Quem racha?</p>
         </div>
-        {isEdit && (
+        {isEdit && podeEditar && (
           <button onClick={handleDelete} className="btn-danger" type="button">
             <Trash2 className="w-4 h-4" /> Apagar
           </button>
         )}
       </div>
+
+      {!podeEditar && (
+        <div className="card p-4 mb-4 bg-amber-50 border-amber-200 flex items-start gap-3">
+          <Lock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-900">
+            <p className="font-semibold">Só dá pra editar quem criou ou quem pagou.</p>
+            <p className="text-amber-800 mt-1">
+              Como você não foi nem o autor nem o pagador desta despesa, ela aparece só pra consulta.
+              Peça pra quem cadastrou (ou quem pagou) fazer a alteração.
+            </p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="card p-6 space-y-5">
         <div>
@@ -219,9 +242,9 @@ export default function AddExpensePage() {
             <label className="label">Valor (R$) *</label>
             <input
               className="input"
-              inputMode="decimal"
+              inputMode="numeric"
               value={valor}
-              onChange={(e) => setValor(e.target.value)}
+              onChange={(e) => setValor(maskCurrency(e.target.value))}
               placeholder="0,00"
               required
             />
@@ -331,11 +354,14 @@ export default function AddExpensePage() {
                   {checked && tipo === 'manual' && (
                     <input
                       className="w-28 input !py-2 !text-sm"
-                      inputMode="decimal"
+                      inputMode="numeric"
                       placeholder="0,00"
                       value={valoresManuais[p.usuario_id] ?? ''}
                       onChange={(e) =>
-                        setValoresManuais({ ...valoresManuais, [p.usuario_id]: e.target.value })
+                        setValoresManuais({
+                          ...valoresManuais,
+                          [p.usuario_id]: maskCurrency(e.target.value),
+                        })
                       }
                     />
                   )}
@@ -356,12 +382,27 @@ export default function AddExpensePage() {
           <div className="rounded-xl bg-danger-100 text-danger-600 px-4 py-3 text-sm">{error}</div>
         )}
 
-        <button type="submit" disabled={loading} className="btn-primary w-full text-base py-4">
+        <button
+          type="submit"
+          disabled={loading || !podeEditar}
+          className="btn-primary w-full text-base py-4"
+        >
           {loading ? 'Salvando…' : isEdit ? 'Salvar alterações' : 'Lançar despesa'}
         </button>
       </form>
     </div>
   );
+}
+
+// Supabase PostgrestError não estende Error, então `err instanceof Error` falha.
+// Tentamos extrair .message de qualquer objeto antes de cair no fallback.
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === 'object' && 'message' in err) {
+    const msg = (err as { message: unknown }).message;
+    if (typeof msg === 'string' && msg.trim()) return msg;
+  }
+  if (typeof err === 'string' && err.trim()) return err;
+  return fallback;
 }
 
 function parseValor(s: string): number | null {
@@ -373,4 +414,24 @@ function parseValor(s: string): number | null {
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+// Máscara estilo "caixa de loja": dígitos vão preenchendo do centavo pra cima.
+// "1" → "0,01"; "12313" → "123,13"; "1231300" → "12.313,00".
+function maskCurrency(input: string): string {
+  const digits = input.replace(/\D/g, '');
+  if (!digits) return '';
+  const cents = parseInt(digits, 10);
+  return (cents / 100).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatCurrencyFromNumber(value: number): string {
+  if (!Number.isFinite(value)) return '';
+  return value.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
